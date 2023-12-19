@@ -33,8 +33,13 @@ impl<I, O, T: Command<I, O>> CommandPool<I, O, T> {
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl<I, O, T: Command<I, O>> Command<I, O> for CommandPool<I, O, T> {
+#[async_trait::async_trait]
+impl<I, O, T> Command<I, O> for CommandPool<I, O, T>
+where
+    I: Send + Sync,
+    O: Send + Sync,
+    T: Command<I, O>,
+{
     async fn execute(&self, message: I) -> O {
         let _guard = self.semaphore.acquire().await;
         self.command.execute(message).await
@@ -89,8 +94,12 @@ impl<I: 'static, O: 'static> CommandMutPool<I, O> {
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl<I: 'static, O: 'static> Command<I, Result<O, ExecutorError>> for CommandMutPool<I, O> {
+#[async_trait::async_trait]
+impl<I, O> Command<I, Result<O, ExecutorError>> for CommandMutPool<I, O>
+where
+    I: 'static + Send + Sync,
+    O: 'static + Send + Sync,
+{
     async fn execute(&self, message: I) -> Result<O, ExecutorError> {
         let (tx, rx) = async_channel::bounded(1);
         let span = tracing::Span::current();

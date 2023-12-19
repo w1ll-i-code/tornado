@@ -15,9 +15,13 @@ impl<F: Fn(I) -> Fut, Fut: Future<Output = O>, I, O> CallbackCommand<F, Fut, I, 
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl<F: Fn(I) -> Fut, Fut: Future<Output = O>, I, O> Command<I, O>
-    for CallbackCommand<F, Fut, I, O>
+#[async_trait::async_trait]
+impl<F, Fut, I, O> Command<I, O> for CallbackCommand<F, Fut, I, O>
+where
+    I: Send + Sync,
+    O: Send + Sync,
+    F: Fn(I) -> Fut + Send + Sync,
+    Fut: Future<Output = O> + Send + Sync,
 {
     async fn execute(&self, message: I) -> O {
         (self.callback)(message).await
@@ -37,9 +41,13 @@ impl<F: FnMut(I) -> Fut, Fut: Future<Output = O>, I, O> CallbackCommandMut<F, Fu
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl<F: FnMut(I) -> Fut, Fut: Future<Output = O>, I, O> CommandMut<I, O>
-    for CallbackCommandMut<F, Fut, I, O>
+#[async_trait::async_trait]
+impl<F, Fut, I, O> CommandMut<I, O> for CallbackCommandMut<F, Fut, I, O>
+where
+    I: Send + Sync,
+    O: Send + Sync,
+    F: FnMut(I) -> Fut + Send + Sync,
+    Fut: Future<Output = O> + Send + Sync,
 {
     async fn execute(&mut self, message: I) -> O {
         (self.callback)(message).await

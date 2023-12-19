@@ -1,4 +1,3 @@
-use action::SimpleCreateAndProcess;
 use log::*;
 use std::{future::Future, pin::Pin, sync::Arc};
 use tornado_common_api::RetriableError;
@@ -18,6 +17,8 @@ pub const MONITORING_ACTION_NAME_KEY: &str = "action_name";
 
 mod action;
 pub mod migration;
+
+pub use action::SimpleCreateAndProcess;
 
 /// An executor that performs a process check result and, if needed, creates the underneath host/service
 #[derive(Clone)]
@@ -99,7 +100,7 @@ impl SmartMonitoringExecutor {
         icinga2_action: Icinga2ActionOwned,
         host_name: Option<String>,
         service_name: Option<String>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ExecutorError>>>> {
+    ) -> Pin<Box<dyn Future<Output = Result<(), ExecutorError>> + Send + Sync>> {
         Box::pin(async move {
             match icinga_executor.perform_request(&(&icinga2_action).into()).await {
                 Ok(()) => {
@@ -115,7 +116,7 @@ impl SmartMonitoringExecutor {
     }
 
     #[instrument(level = "debug", name = "SmartMonitoring", err, skip_all, fields(otel.name = format!("Perform SmartMonitoring Action for host: [{:?}], service: [{:?}]", &host_name, &service_name).as_str()))]
-    async fn execute_smart_monitoring_action(
+    pub async fn execute_smart_monitoring_action(
         &self,
         icinga2_action: &Icinga2Action<'_>,
         director_host_creation_action: DirectorAction<'_>,
@@ -162,7 +163,7 @@ impl SmartMonitoringExecutor {
     }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl StatelessExecutor for SmartMonitoringExecutor {
     #[tracing::instrument(level = "info", skip_all, err, fields(otel.name = format!("Execute Action: {}", & action.id).as_str(), otel.kind = "Consumer"))]
     async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {

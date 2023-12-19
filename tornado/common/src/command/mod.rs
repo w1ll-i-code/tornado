@@ -2,10 +2,9 @@ use crate::metrics::{
     ActionMeter, ACTION_ID_LABEL_KEY, ATTEMPT_RESULT_KEY, RESULT_FAILURE, RESULT_SUCCESS,
 };
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::rc::Rc;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tornado_common_api::Action;
 use tornado_executor_common::{ExecutorError, StatefulExecutor, StatelessExecutor};
 
@@ -15,9 +14,20 @@ pub mod retry;
 
 /// Basic Trait to implement the Command Design Pattern.
 /// See: https://refactoring.guru/design-patterns/command
-#[async_trait::async_trait(?Send)]
-pub trait Command<Message, Output> {
+#[async_trait::async_trait]
+pub trait Command<Message, Output>: Send + Sync {
     async fn execute(&self, message: Message) -> Output;
+}
+
+#[async_trait::async_trait]
+impl<Message, Output, T> Command<Message, Output> for Arc<T>
+where
+    Message: 'static + Send + Sync,
+    T: Command<Message, Output>,
+{
+    async fn execute(&self, message: Message) -> Output {
+        self.execute(message).await
+    }
 }
 
 pub struct StatelessExecutorCommand<T: StatelessExecutor> {
@@ -32,7 +42,7 @@ impl<T: StatelessExecutor> StatelessExecutorCommand<T> {
 }
 
 /// Implement the Command pattern for StatelessExecutorCommand
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl<T: StatelessExecutor> Command<Arc<Action>, Result<(), ExecutorError>>
     for StatelessExecutorCommand<T>
 {
@@ -63,8 +73,8 @@ fn increment_processing_attempt_counter<T: Into<Cow<'static, str>>>(
 
 /// Basic Trait to implement the Command Design Pattern.
 /// See: https://refactoring.guru/design-patterns/command
-#[async_trait::async_trait(?Send)]
-pub trait CommandMut<Message, Output> {
+#[async_trait::async_trait]
+pub trait CommandMut<Message, Output>: Send + Sync {
     async fn execute(&mut self, message: Message) -> Output;
 }
 
@@ -80,7 +90,7 @@ impl<T: StatefulExecutor> StatefulExecutorCommand<T> {
 }
 
 /// Implement the Command pattern for StatefulExecutorCommand
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl<T: StatefulExecutor> CommandMut<Arc<Action>, Result<(), ExecutorError>>
     for StatefulExecutorCommand<T>
 {
@@ -93,21 +103,30 @@ impl<T: StatefulExecutor> CommandMut<Arc<Action>, Result<(), ExecutorError>>
 }
 
 pub struct CommandMutWrapper<Message, Output, C: CommandMut<Message, Output>> {
-    command: Rc<RefCell<C>>,
+    command: Mutex<C>,
     phantom_message: PhantomData<Message>,
     phantom_output: PhantomData<Output>,
 }
 
 impl<Message, Output, C: CommandMut<Message, Output>> CommandMutWrapper<Message, Output, C> {
-    pub fn new(command: Rc<RefCell<C>>) -> Self {
-        Self { command, phantom_message: PhantomData, phantom_output: PhantomData }
+    pub fn new(command: C) -> Self {
+        Self {
+            command: Mutex::new(command),
+            phantom_message: PhantomData,
+            phantom_output: PhantomData,
+        }
     }
 }
 
-#[async_trait::async_trait(?Send)]
-impl<I, O, T: CommandMut<I, O>> Command<I, O> for CommandMutWrapper<I, O, T> {
+#[async_trait::async_trait]
+impl<I, O, T> Command<I, O> for CommandMutWrapper<I, O, T>
+where
+    I: Send + Sync,
+    O: Send + Sync,
+    T: CommandMut<I, O>,
+{
     async fn execute(&self, message: I) -> O {
-        let mut command = self.command.borrow_mut();
+        let mut command = self.command.lock().await;
         command.execute(message).await
     }
 }

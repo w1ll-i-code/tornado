@@ -175,7 +175,7 @@ impl MonitoringExecutor {
     }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl StatelessExecutor for MonitoringExecutor {
     #[tracing::instrument(level = "info", skip_all, err, fields(otel.name = format!("Execute Action: {}", &action.id).as_str(), otel.kind = "Consumer"))]
     async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {

@@ -19,6 +19,7 @@ pub fn dateandtime(
     // This is triggering a warning during the build.
     // It should be fixed automatically with a newer version of rust, for
     // more info: https://github.com/rust-lang/rust/issues/41620)
+    #[allow(illegal_floating_point_literal_pattern)]
     let date = match timestamp as f64 {
         // timestamp is in seconds
         -1e11..=1e11 => timezone.timestamp_opt(timestamp, 0).unwrap(),

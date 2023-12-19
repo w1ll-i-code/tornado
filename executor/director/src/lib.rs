@@ -119,7 +119,7 @@ impl DirectorExecutor {
 
         trace!("DirectorExecutor - calling url: {}", url);
 
-        let payload = serde_json::to_value(&director_action.payload)?;
+        let payload = serde_json::to_value(director_action.payload)?;
 
         let response = match client
             .post(&url)
@@ -192,7 +192,7 @@ impl DirectorExecutor {
     }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl StatelessExecutor for DirectorExecutor {
     #[tracing::instrument(level = "info", skip_all, err, fields(otel.name = format!("Execute Action: {}", &action.id).as_str(), otel.kind = "Consumer"))]
     async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {

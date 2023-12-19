@@ -5,11 +5,11 @@ use tornado_engine_matcher::{dispatcher, error, model};
 use tornado_network_common::EventBus;
 use tracing::Span;
 
-pub struct ActixEventBus<F: Fn(ActionMessage)> {
+pub struct ActixEventBus<F: Fn(ActionMessage) + Send + Sync> {
     pub callback: F,
 }
 
-impl<F: Fn(ActionMessage)> EventBus for ActixEventBus<F> {
+impl<F: Fn(ActionMessage) + Send + Sync> EventBus for ActixEventBus<F> {
     fn publish_action(&self, message: ActionMessage) {
         (self.callback)(message)
     }

@@ -1418,9 +1418,9 @@ checksum = "522de2a0fe3e380f1bc577ba0474108faf3f6b18321dbf60b3b9c39a75073377"
 
 [[package]]
 name = "futures-lite"
-version = "1.12.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7694489acd39452c77daa48516b894c153f192c3578d5a839b62c58099fcbf48"
+checksum = "49a9d51ce47660b1e808d3c990b4709f2f415d928835a17dfd16991515c46bce"
 dependencies = [
  "fastrand",
  "futures-core",
@@ -2352,6 +2352,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "parallel_smart_monitoring"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "futures-lite",
+ "tokio",
+ "tornado_common",
+ "tornado_common_api",
+ "tornado_executor_common",
+ "tornado_executor_smart_monitoring_check_result",
+]
+
+[[package]]
 name = "parking"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3092,6 +3106,10 @@ checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
 ]
+
+[[package]]
+name = "satellite_smart_monitoring"
+version = "0.1.0"
 
 [[package]]
 name = "schannel"

@@ -18,6 +18,8 @@ members = [
    "executor/icinga2",
    "executor/logger",
    "executor/monitoring",
+   "executor/parallel_smart_monitoring",
+   "executor/satellite_smart_monitoring",
    "executor/script",
    "executor/smart_monitoring_check_result",
    "network/common",
@@ -59,3 +61,7 @@ debug = true
 # bugs in the tornado carbon frontend. In case of update rememeber to rebuild also tornado fronted.
 regex-syntax = "0.7.4"
 regex = "1.9.1"
+
+tornado_common = { path = "tornado/common" }
+tornado_common_api = { path = "common/api" }
+tornado_executor_common = { path = "executor/common" }

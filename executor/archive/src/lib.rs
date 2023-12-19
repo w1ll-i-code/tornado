@@ -166,7 +166,7 @@ impl ArchiveExecutor {
     }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl StatefulExecutor for ArchiveExecutor {
     #[tracing::instrument(level = "info", skip_all, err, fields(otel.name = format!("Execute Action: {}", &action.id).as_str(), otel.kind = "Consumer"))]
     async fn execute(&mut self, action: Arc<Action>) -> Result<(), ExecutorError> {

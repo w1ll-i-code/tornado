@@ -8,18 +8,25 @@ use tornado_common_api::{Action, RetriableError};
 
 /// An executor is in charge of performing a specific Action (typically only one, but perhaps more).
 /// It receives the Action description from the Tornado engine and delivers the linked operation.
-#[async_trait::async_trait(?Send)]
-pub trait StatefulExecutor: Display {
+#[async_trait::async_trait]
+pub trait StatefulExecutor: Display + Send + Sync {
     /// Executes the operation linked to the received Action.
     async fn execute(&mut self, action: Arc<Action>) -> Result<(), ExecutorError>;
 }
 
 /// An executor is in charge of performing a specific Action (typically only one, but perhaps more).
 /// It receives the Action description from the Tornado engine and delivers the linked operation.
-#[async_trait::async_trait(?Send)]
-pub trait StatelessExecutor: Display {
+#[async_trait::async_trait]
+pub trait StatelessExecutor: Display + Send + Sync {
     /// Executes the operation linked to the received Action.
     async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError>;
+}
+
+#[async_trait::async_trait]
+impl<T: StatelessExecutor> StatelessExecutor for Arc<T> {
+    async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {
+        self.execute(action).await
+    }
 }
 
 #[derive(Error, Debug, PartialEq)]
