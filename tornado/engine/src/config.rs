@@ -14,6 +14,7 @@ use tornado_executor_archive::config::ArchiveConfig;
 use tornado_executor_director::config::DirectorClientConfig;
 use tornado_executor_elasticsearch::config::ElasticsearchConfig;
 use tornado_executor_icinga2::config::Icinga2ClientConfig;
+use tornado_executor_parallel_smart_monitoring::config::ParallelSmartMonitoringConfig;
 
 pub const CONFIG_DIR_DEFAULT: Option<&'static str> = option_env!("TORNADO_CONFIG_DIR_DEFAULT");
 
@@ -229,12 +230,22 @@ fn build_elasticsearch_config(config_dir: &str) -> Result<ElasticsearchConfig, C
     s.try_into()
 }
 
+fn build_parallel_smart_monitoring_config(
+    config_dir: &str,
+) -> Result<ParallelSmartMonitoringConfig, ConfigError> {
+    let config_file_path = format!("{}/parallel_smart_monitoring_executor.toml", config_dir);
+    let mut s = Config::new();
+    s.merge(File::with_name(&config_file_path))?;
+    s.try_into()
+}
+
 pub struct ComponentsConfig {
     pub matcher_config: Arc<FsMatcherConfigManager>,
     pub archive_executor_config: ArchiveConfig,
     pub icinga2_executor_config: Icinga2ClientConfig,
     pub director_executor_config: DirectorClientConfig,
     pub elasticsearch_executor_config: ElasticsearchConfig,
+    pub parallel_smart_monitoring_config: ParallelSmartMonitoringConfig,
 }
 
 pub fn parse_config_files(
@@ -247,12 +258,15 @@ pub fn parse_config_files(
     let icinga2_executor_config = build_icinga2_client_config(config_dir)?;
     let director_executor_config = build_director_client_config(config_dir)?;
     let elasticsearch_executor_config = build_elasticsearch_config(config_dir)?;
+    let parallel_smart_monitoring_config = build_parallel_smart_monitoring_config(config_dir)?;
+
     Ok(ComponentsConfig {
         matcher_config,
         archive_executor_config,
         icinga2_executor_config,
         director_executor_config,
         elasticsearch_executor_config,
+        parallel_smart_monitoring_config,
     })
 }
 

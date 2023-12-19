@@ -1,9 +1,10 @@
+pub mod config;
+
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use futures_lite::future::FutureExt;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
-use std::num::NonZeroUsize;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
@@ -38,8 +39,8 @@ impl Future for RunningFuture {
     }
 }
 
-struct ParallelSmartMonitoringExecutor {
-    max_parallel_requests: NonZeroUsize,
+pub struct ParallelSmartMonitoringExecutor {
+    max_parallel_requests: usize,
     running_futures: Mutex<Vec<RunningFuture>>,
     retry_strategy: RetryStrategy,
     action_meter: Arc<ActionMeter>,
@@ -48,7 +49,7 @@ struct ParallelSmartMonitoringExecutor {
 
 impl ParallelSmartMonitoringExecutor {
     pub fn new(
-        max_parallel_requests: NonZeroUsize,
+        max_parallel_requests: usize,
         smart_monitoring_executor: SmartMonitoringExecutor,
         action_meter: Arc<ActionMeter>,
         retry_strategy: RetryStrategy,
@@ -80,7 +81,7 @@ impl StatefulExecutor for ParallelSmartMonitoringExecutor {
         let mut running_futures = self.running_futures.lock().await;
 
         match running_futures.iter().position(|f| f.id == id) {
-            None if running_futures.len() == self.max_parallel_requests.get() => {
+            None if running_futures.len() == self.max_parallel_requests => {
                 let mut futures: FuturesUnordered<_> = running_futures.iter_mut().collect();
                 match futures.next().await {
                     None => unreachable!(),
@@ -100,6 +101,18 @@ impl StatefulExecutor for ParallelSmartMonitoringExecutor {
         let future = tokio::spawn(self.new_command(action));
         running_futures.push(RunningFuture { id, future });
         Ok(())
+    }
+}
+
+impl Clone for ParallelSmartMonitoringExecutor {
+    fn clone(&self) -> Self {
+        Self {
+            max_parallel_requests: self.max_parallel_requests,
+            running_futures: Default::default(),
+            retry_strategy: self.retry_strategy.clone(),
+            action_meter: self.action_meter.clone(),
+            smart_monitoring_executor: self.smart_monitoring_executor.clone(),
+        }
     }
 }
 

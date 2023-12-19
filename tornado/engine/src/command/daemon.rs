@@ -92,9 +92,9 @@ pub async fn daemon(
     // Start ForEach executor actor
     let foreach_executor_addr = ForEachExecutorActor::start_new(message_queue_size);
 
-    let archive_action_meter = action_meter.clone();
     // Start archive executor actor
     let archive_executor_addr = {
+        let archive_action_meter = action_meter.clone();
         let archive_config = configs.archive_executor_config.clone();
         CommandExecutorActor::start_new(
             message_queue_size,
@@ -234,6 +234,37 @@ pub async fn daemon(
         )
     };
 
+    let parallel_smart_monitoring_check_result_executor_addr = {
+        let smart_monitoring_action_meter = action_meter.clone();
+        let smart_monitoring_executor =
+            tornado_executor_smart_monitoring_check_result::SmartMonitoringExecutor::new(
+                configs.icinga2_executor_config.clone(),
+                configs.director_executor_config.clone(),
+            )
+            .expect("Cannot start the SmartMonitoringExecutor Executor");
+        let executor =
+            tornado_executor_parallel_smart_monitoring::ParallelSmartMonitoringExecutor::new(
+                configs.parallel_smart_monitoring_config.max_parallel_requests,
+                smart_monitoring_executor,
+                action_meter.clone(),
+                retry_strategy.clone(),
+            );
+
+        CommandExecutorActor::start_new(
+            message_queue_size,
+            Rc::new(RetryCommand::new(
+                retry_strategy.clone(),
+                CommandMutPool::new(1, move || {
+                    StatefulExecutorCommand::new(
+                        smart_monitoring_action_meter.clone(),
+                        executor.clone(),
+                    )
+                }),
+            )),
+            action_meter.clone(),
+        )
+    };
+
     // Configure action dispatcher
     let foreach_executor_addr_clone = foreach_executor_addr.clone();
     let event_bus = {
@@ -271,6 +302,14 @@ pub async fn daemon(
                         smart_monitoring_check_result_executor_addr.try_send(message).map_err(|err| {
                             format!(
                                 "Error sending message to 'smart_monitoring_check_result' executor. Err: {:?}",
+                                err
+                            )
+                        })
+                    }
+                    "parallel_smart_monitoring" => {
+                        parallel_smart_monitoring_check_result_executor_addr.try_send(message).map_err(|err| {
+                            format!(
+                                "Error sending message to 'parallel_smart_monitoring' executor. Err: {:?}",
                                 err
                             )
                         })
