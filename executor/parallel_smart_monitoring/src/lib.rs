@@ -97,6 +97,7 @@ impl StatefulExecutor for ParallelSmartMonitoringExecutor {
             _ => {}
         }
 
+        // Todo: log potential errors
         running_futures.retain(|f| !f.future.is_finished());
         let future = tokio::spawn(self.new_command(action));
         running_futures.push(RunningFuture { id, future });
