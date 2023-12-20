@@ -265,6 +265,24 @@ pub async fn daemon(
         )
     };
 
+    // Start smart_monitoring_check_result executor actor
+    let satellite_smart_monitoring_executor_addr = {
+        let executor =
+            tornado_executor_satellite_smart_monitoring::SatelliteSmartMonitoringExecutor::new(
+                configs.satellite_smart_monitoring_config,
+            );
+        let stateless_executor_command =
+            StatelessExecutorCommand::new(action_meter.clone(), executor);
+        CommandExecutorActor::start_new(
+            message_queue_size,
+            Rc::new(RetryCommand::new(
+                retry_strategy.clone(),
+                CommandPool::new(1, stateless_executor_command),
+            )),
+            action_meter.clone(),
+        )
+    };
+
     // Configure action dispatcher
     let foreach_executor_addr_clone = foreach_executor_addr.clone();
     let event_bus = {
@@ -310,6 +328,14 @@ pub async fn daemon(
                         parallel_smart_monitoring_check_result_executor_addr.try_send(message).map_err(|err| {
                             format!(
                                 "Error sending message to 'parallel_smart_monitoring' executor. Err: {:?}",
+                                err
+                            )
+                        })
+                    }
+                    "satellite_smart_monitoring" => {
+                        satellite_smart_monitoring_executor_addr.try_send(message).map_err(|err| {
+                            format!(
+                                "Error sending message to 'satellite_smart_monitoring' executor. Err: {:?}",
                                 err
                             )
                         })

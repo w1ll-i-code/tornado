@@ -1,4 +1,4 @@
-use crate::config::IcingaSatelliteConfig;
+use crate::config::SatelliteSmartMonitoringConfig;
 use crate::error::{IcingaSatelliteError, SatelliteConfigurationError};
 use crate::icinga2::model::config::{ConfigProvider, Host, Service};
 use crate::icinga2::model::{
@@ -51,7 +51,7 @@ impl Debug for SetStateRequest {
 }
 
 pub(crate) async fn start_connection(
-    config: &IcingaSatelliteConfig,
+    config: &SatelliteSmartMonitoringConfig,
 ) -> Result<TlsStream<TcpStream>, IcingaSatelliteError> {
     // setup tls config
     let tls_config = create_tls_config(config).await?;
@@ -89,12 +89,12 @@ pub(crate) async fn start_connection(
 }
 
 async fn create_tls_config(
-    config: &IcingaSatelliteConfig,
+    config: &SatelliteSmartMonitoringConfig,
 ) -> Result<ClientConfig, SatelliteConfigurationError> {
     let config = ClientConfig::builder()
         .with_safe_defaults()
         .with_root_certificates(load_ca(config).await?)
-        .with_single_cert(load_cert(config).await?, load_key(config).await?)?;
+        .with_client_auth_cert(load_cert(config).await?, load_key(config).await?)?;
 
     Ok(config)
 }
@@ -133,7 +133,7 @@ async fn receive_icinga_hello<Stream: AsyncRead + Unpin + Send>(
 }
 
 async fn send_request_cert<Stream: AsyncWrite + Unpin + Send>(
-    config: &IcingaSatelliteConfig,
+    config: &SatelliteSmartMonitoringConfig,
     stream: &mut Stream,
 ) -> Result<(), IcingaSatelliteError> {
     let file_path = config.cert_path();
@@ -152,7 +152,7 @@ async fn send_request_cert<Stream: AsyncWrite + Unpin + Send>(
 
 pub(crate) async fn handle_update_certificate(
     update_certificate: &UpdateCertificate,
-    config: &IcingaSatelliteConfig,
+    config: &SatelliteSmartMonitoringConfig,
 ) -> Result<(), IcingaSatelliteError> {
     match &update_certificate.result {
         UpdateCertificateResult::Error { error } => error!("{}", error),
@@ -174,7 +174,7 @@ pub(crate) enum UpdateObject {
 
 pub(crate) fn worker_io<T: AsyncRead + AsyncWrite + Unpin + Send>(
     connection: T,
-    config: &IcingaSatelliteConfig,
+    config: &SatelliteSmartMonitoringConfig,
 ) -> (SenderInput, SenderIo<T>, ReceiverIo<T>) {
     // SECURITY: Normally splitting a tls stream would not be safe, as it might come to write
     // requests during reads. However the current implementation of rustls should be save.
@@ -410,7 +410,7 @@ impl<Writer: AsyncWrite + Unpin + Send> SenderIo<Writer> {
 }
 
 pub async fn worker(
-    config: IcingaSatelliteConfig,
+    config: SatelliteSmartMonitoringConfig,
     channel: Receiver<SetStateRequest>,
 ) -> Infallible {
     let mut dropped_messages: Option<Vec<SetStateRequest>> = None;
@@ -590,7 +590,7 @@ async fn sender<Writer: AsyncWrite + Unpin + Send>(mut sender_io: SenderIo<Write
 }
 
 async fn receiver<Reader: AsyncRead + Send>(
-    icinga_config: Arc<IcingaSatelliteConfig>,
+    icinga_config: Arc<SatelliteSmartMonitoringConfig>,
     mut receiver_io: ReceiverIo<Reader>,
 ) -> Vec<SetStateRequest> {
     info!("Spawned receiver-worker");
@@ -678,7 +678,7 @@ mod certificates {
     }
 
     pub(crate) async fn save_ca(
-        config: &IcingaSatelliteConfig,
+        config: &SatelliteSmartMonitoringConfig,
         data: &[u8],
     ) -> Result<(), SatelliteConfigurationError> {
         let path = config.ca_path();
@@ -686,7 +686,7 @@ mod certificates {
     }
 
     pub(crate) async fn save_cert(
-        config: &IcingaSatelliteConfig,
+        config: &SatelliteSmartMonitoringConfig,
         data: &[u8],
     ) -> Result<(), SatelliteConfigurationError> {
         let path = config.cert_path();
@@ -694,7 +694,7 @@ mod certificates {
     }
 
     pub(crate) async fn save_fpr(
-        config: &IcingaSatelliteConfig,
+        config: &SatelliteSmartMonitoringConfig,
         data: &[u8],
     ) -> Result<(), SatelliteConfigurationError> {
         let path = config.fpr_path();
@@ -709,7 +709,7 @@ mod certificates {
     }
 
     pub(crate) async fn load_ca(
-        config: &IcingaSatelliteConfig,
+        config: &SatelliteSmartMonitoringConfig,
     ) -> Result<RootCertStore, SatelliteConfigurationError> {
         let ca_path = config.ca_path();
         let data = load(&ca_path).await?;
@@ -729,7 +729,7 @@ mod certificates {
     }
 
     pub(crate) async fn load_cert(
-        config: &IcingaSatelliteConfig,
+        config: &SatelliteSmartMonitoringConfig,
     ) -> Result<Vec<Certificate>, SatelliteConfigurationError> {
         let cert_path = config.cert_path();
         let content = load(&cert_path).await?;
@@ -738,7 +738,7 @@ mod certificates {
     }
 
     pub(crate) async fn load_key(
-        config: &IcingaSatelliteConfig,
+        config: &SatelliteSmartMonitoringConfig,
     ) -> Result<PrivateKey, SatelliteConfigurationError> {
         let key_path = config.key_path();
         let content = load(&key_path).await?;
@@ -757,7 +757,7 @@ mod certificates {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{EndPointConfig, IcingaSatelliteConfig};
+    use crate::config::{EndPointConfig, SatelliteSmartMonitoringConfig};
     use crate::satellite::{
         receive_icinga_hello, receiver, send_icinga_hello, send_request_cert, sender, worker_io,
         SetStateRequest, UpdateObject,
@@ -774,8 +774,8 @@ mod tests {
     use tokio_rustls::rustls::ServerName;
     use tokio_test::io::Builder;
 
-    fn test_config() -> IcingaSatelliteConfig {
-        IcingaSatelliteConfig {
+    fn test_config() -> SatelliteSmartMonitoringConfig {
+        SatelliteSmartMonitoringConfig {
             endpoint: EndPointConfig {
                 address: ServerName::try_from("icinga-master").unwrap(),
                 port: 5665,

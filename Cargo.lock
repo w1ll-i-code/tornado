@@ -3246,29 +3246,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "satellite_smart_monitoring"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bitfield-struct",
- "env_logger",
- "flume",
- "log",
- "maplit",
- "rustls-pemfile",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-netstring-trait",
- "tokio-rustls 0.24.1",
- "tornado_common",
- "tornado_common_api",
- "tornado_executor_common",
- "webpki 0.22.4",
-]
-
-[[package]]
 name = "schannel"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4369,6 +4346,7 @@ dependencies = [
  "tornado_executor_logger",
  "tornado_executor_monitoring",
  "tornado_executor_parallel_smart_monitoring",
+ "tornado_executor_satellite_smart_monitoring",
  "tornado_executor_script",
  "tornado_executor_smart_monitoring_check_result",
  "tornado_network_common",
@@ -4593,6 +4571,29 @@ dependencies = [
  "tornado_common_api",
  "tornado_executor_common",
  "tornado_executor_smart_monitoring_check_result",
+]
+
+[[package]]
+name = "tornado_executor_satellite_smart_monitoring"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bitfield-struct",
+ "env_logger",
+ "flume",
+ "log",
+ "maplit",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-netstring-trait",
+ "tokio-rustls 0.24.1",
+ "tornado_common",
+ "tornado_common_api",
+ "tornado_executor_common",
+ "webpki 0.22.4",
 ]
 
 [[package]]

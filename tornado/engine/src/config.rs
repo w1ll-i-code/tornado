@@ -15,6 +15,7 @@ use tornado_executor_director::config::DirectorClientConfig;
 use tornado_executor_elasticsearch::config::ElasticsearchConfig;
 use tornado_executor_icinga2::config::Icinga2ClientConfig;
 use tornado_executor_parallel_smart_monitoring::config::ParallelSmartMonitoringConfig;
+use tornado_executor_satellite_smart_monitoring::config::SatelliteSmartMonitoringConfig;
 
 pub const CONFIG_DIR_DEFAULT: Option<&'static str> = option_env!("TORNADO_CONFIG_DIR_DEFAULT");
 
@@ -239,6 +240,15 @@ fn build_parallel_smart_monitoring_config(
     s.try_into()
 }
 
+fn build_satellite_smart_monitoring_config(
+    config_dir: &str,
+) -> Result<SatelliteSmartMonitoringConfig, ConfigError> {
+    let config_file_path = format!("{}/satellite_smart_monitoring_executor.toml", config_dir);
+    let mut s = Config::new();
+    s.merge(File::with_name(&config_file_path))?;
+    s.try_into()
+}
+
 pub struct ComponentsConfig {
     pub matcher_config: Arc<FsMatcherConfigManager>,
     pub archive_executor_config: ArchiveConfig,
@@ -246,6 +256,7 @@ pub struct ComponentsConfig {
     pub director_executor_config: DirectorClientConfig,
     pub elasticsearch_executor_config: ElasticsearchConfig,
     pub parallel_smart_monitoring_config: ParallelSmartMonitoringConfig,
+    pub satellite_smart_monitoring_config: SatelliteSmartMonitoringConfig,
 }
 
 pub fn parse_config_files(
@@ -259,6 +270,7 @@ pub fn parse_config_files(
     let director_executor_config = build_director_client_config(config_dir)?;
     let elasticsearch_executor_config = build_elasticsearch_config(config_dir)?;
     let parallel_smart_monitoring_config = build_parallel_smart_monitoring_config(config_dir)?;
+    let satellite_smart_monitoring_config = build_satellite_smart_monitoring_config(config_dir)?;
 
     Ok(ComponentsConfig {
         matcher_config,
@@ -267,6 +279,7 @@ pub fn parse_config_files(
         director_executor_config,
         elasticsearch_executor_config,
         parallel_smart_monitoring_config,
+        satellite_smart_monitoring_config,
     })
 }
 

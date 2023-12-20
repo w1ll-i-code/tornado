@@ -6,7 +6,7 @@ use std::time::Duration;
 use tokio_rustls::rustls::ServerName;
 
 #[derive(Deserialize, Clone)]
-pub struct IcingaSatelliteConfig {
+pub struct SatelliteSmartMonitoringConfig {
     pub endpoint: EndPointConfig,
     pub cert_root_path: PathBuf,
     pub retry_time: Duration,
@@ -14,7 +14,7 @@ pub struct IcingaSatelliteConfig {
     pub intern_buffer_size: usize,
 }
 
-impl IcingaSatelliteConfig {
+impl SatelliteSmartMonitoringConfig {
     pub fn ca_path(&self) -> PathBuf {
         let mut path = self.cert_root_path.clone();
         path.push("ca.crt");

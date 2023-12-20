@@ -43,6 +43,7 @@ tornado_executor_monitoring = { path = "../../executor/monitoring", version = "0
 tornado_executor_script = { path = "../../executor/script", version = "0.0.1" }
 tornado_executor_smart_monitoring_check_result = { path = "../../executor/smart_monitoring_check_result" }
 tornado_executor_parallel_smart_monitoring = { path = "../../executor/parallel_smart_monitoring" }
+tornado_executor_satellite_smart_monitoring = { path = "../../executor/satellite_smart_monitoring" }
 tornado_network_common = { path = "../../network/common", version = "0.0.1" }
 tracing = "0.1"
 tracing-actix-web = "0.4.0-beta.9"

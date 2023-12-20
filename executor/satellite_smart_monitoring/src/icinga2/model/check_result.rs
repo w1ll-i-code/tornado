@@ -27,10 +27,12 @@ impl CheckResultParams {
         }
     }
 
+    #[allow(dead_code)]
     pub fn for_host(host: String, cr: HostCheckResult) -> CheckResultParams {
         Self::Host { host, cr }
     }
 
+    #[allow(dead_code)]
     pub fn for_service(host: String, service: String, cr: ServiceCheckResult) -> CheckResultParams {
         Self::Service { host, service, cr }
     }

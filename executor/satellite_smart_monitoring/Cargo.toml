@@ -1,5 +1,5 @@
 [package]
-name = "satellite_smart_monitoring"
+name = "tornado_executor_satellite_smart_monitoring"
 version = "0.1.0"
 edition = "2021"
 

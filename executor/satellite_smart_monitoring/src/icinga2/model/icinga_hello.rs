@@ -69,6 +69,7 @@ impl IcingaHelloParams {
         self.version as u64
     }
 
+    #[allow(dead_code)]
     pub fn get_permissions(&self) -> Capabilities {
         self.capabilities
     }
