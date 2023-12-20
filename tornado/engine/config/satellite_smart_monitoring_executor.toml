@@ -1,12 +1,12 @@
 # The root path to all the needed certificate files.
 cert_root_path = "/var/tornado/satellite_smart_monitoring_executor/certs/"
 # The time to sleep between connection attempts to icinga2
-retry_time = { secs = 1, nanos = "500_000_000"}
+retry_time = { secs = 1, nanos = 500_000_000 }
 # The maximum parallel messages before we wait for confirmation from icinga2
 max_parallel_send = 10
 # The internal buffer size of the receiver connection of icinga2.
 # Messages larger than this will be dropped.
-intern_buffer_size = "1MB"
+intern_buffer_size = 1_048_576
 
 [endpoint]
 # The web address of the icinga2-master instance to connect to.

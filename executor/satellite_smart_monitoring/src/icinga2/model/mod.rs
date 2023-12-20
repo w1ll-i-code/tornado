@@ -189,7 +189,7 @@ pub enum IcingaObjectType {
 
 #[cfg(test)]
 mod test {
-    use crate::model::{IcingaMethods, JsonRpc};
+    use super::{IcingaMethods, JsonRpc};
 
     #[test]
     fn jsonrpc_should_serialize_correctly() {

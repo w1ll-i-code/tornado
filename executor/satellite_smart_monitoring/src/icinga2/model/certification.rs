@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 /// To get a secure connection to the Icinga2 master instance, a signed certificate is needed.
 /// This has two fields:
 ///
-///     * ticket: A generated ticket which represents the requested common name.
-///       This can be generated with the `icinga2-master pki ticket --cn icinga2-tornado-satellite`
-///       command.
+/// - ticket: A generated ticket which represents the requested common name.
+///   This can be generated with the `icinga2-master pki ticket --cn icinga2-tornado-satellite`
+///   command.
 ///
-///     * cert_request: An optional certification request to be signed. This needs to be present
-///       for the first request only.
+/// - cert_request: An optional certification request to be signed. This needs to be present
+///   for the first request only.
 ///
 /// It is expected that the icinga2 master will then return a `pki::UpdateCertificate` request.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -36,20 +36,14 @@ pub struct UpdateCertificate {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum UpdateCertificateResult {
-    Error {
-        error: String,
-    },
-    Ok {
-        cert: String,
-        ca: String,
-        fingerprint_request: String,
-    },
+    Error { error: String },
+    Ok { cert: String, ca: String, fingerprint_request: String },
 }
 
 #[cfg(test)]
 mod test {
-    use crate::model::certification::RequestCertificate;
-    use crate::model::{IcingaMethods, JsonRpc};
+    use super::RequestCertificate;
+    use crate::icinga2::model::{IcingaMethods, JsonRpc};
 
     #[test]
     fn should_serialize_request_certificate_correctly() {

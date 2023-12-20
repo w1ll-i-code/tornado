@@ -492,7 +492,7 @@ pub mod test {
         pub sender: UnboundedSender<Arc<Action>>,
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl StatelessExecutor for AlwaysFailExecutor {
         async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {
             self.sender.send(action).unwrap();
@@ -515,7 +515,7 @@ pub mod test {
         pub sender: UnboundedSender<Arc<Action>>,
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl StatelessExecutor for AlwaysOkExecutor {
         async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {
             self.sender.send(action).unwrap();

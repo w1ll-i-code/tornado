@@ -758,14 +758,14 @@ mod certificates {
 #[cfg(test)]
 mod tests {
     use crate::config::{EndPointConfig, SatelliteSmartMonitoringConfig};
+    use crate::icinga2::model::config::Host;
+    use crate::icinga2::model::{
+        CheckResultParams, HostCheckResult, HostState, IcingaMethods, IcingaTimestamp, JsonRpc,
+        UpdateObjectParams,
+    };
     use crate::satellite::{
         receive_icinga_hello, receiver, send_icinga_hello, send_request_cert, sender, worker_io,
         SetStateRequest, UpdateObject,
-    };
-    use icinga::model::config::Host;
-    use icinga::model::{
-        CheckResultParams, HostCheckResult, HostState, IcingaMethods, IcingaTimestamp, JsonRpc,
-        UpdateObjectParams,
     };
     use std::fs::read;
     use std::path::PathBuf;
@@ -815,9 +815,7 @@ mod tests {
         }
     }
 
-    fn logger() {
-        logger();
-    }
+    fn logger() {}
 
     #[tokio::test]
     async fn should_send_icinga_hello() {
@@ -876,7 +874,7 @@ mod tests {
 
         let request = set_host_state_test_request();
         input.send_async(request).await.unwrap();
-        dbg!(receiver_io.work_queue.recv_async().await.unwrap());
+        receiver_io.work_queue.recv_async().await.unwrap();
     }
 
     #[tokio::test]
@@ -903,7 +901,7 @@ mod tests {
             .unwrap();
 
         input.send_async(request).await.unwrap();
-        dbg!(receiver_io.work_queue.recv_async().await.unwrap());
+        receiver_io.work_queue.recv_async().await.unwrap();
     }
 
     #[tokio::test]

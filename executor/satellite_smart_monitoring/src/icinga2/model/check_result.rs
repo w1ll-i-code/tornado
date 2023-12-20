@@ -217,15 +217,15 @@ impl<'de> Visitor<'de> for ServiceStateVisitor {
 /// about the state of a certain checkable object. The CheckResult has to have three values in order
 /// to be correctly processed by the master:
 ///
-///     * The type of the CheckResult for the purposes of a satellite which sends passive CheckResults,
-///     is always "CheckResult".
+/// - The type of the CheckResult for the purposes of a satellite which sends passive CheckResults,
+///   is always "CheckResult".
 ///
-///     * The state is the core part of the message and needs to be a integer between 1 and 4. However
-///     because of the Json specification which has no Integer defined, it is usually represented by
-///     icinga2 as a floating point number, with a zero as mantissa.
+/// - The state is the core part of the message and needs to be a integer between 1 and 4. However
+///   because of the Json specification which has no Integer defined, it is usually represented by
+///   icinga2 as a floating point number, with a zero as mantissa.
 ///
-///     * The last object that needs to be present is the performance data. It is a list of Strings
-///     which holds data to the check. This value can be empty ([]) as long as the key is present.
+/// - The last object that needs to be present is the performance data. It is a list of Strings
+///   which holds data to the check. This value can be empty ([]) as long as the key is present.
 ///
 /// Furthermore it can hold a bunch of other values to provide further information about the test.
 /// Those are however all optional.
@@ -288,10 +288,8 @@ impl From<Vec<String>> for Command {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::check_result::{
-        Command, HostCheckResult, HostState, ServiceCheckResult, ServiceState,
-    };
-    use crate::model::CheckResultParams;
+    use super::{Command, HostCheckResult, HostState, ServiceCheckResult, ServiceState};
+    use crate::icinga2::model::CheckResultParams;
 
     #[test]
     fn should_serialize_host() {

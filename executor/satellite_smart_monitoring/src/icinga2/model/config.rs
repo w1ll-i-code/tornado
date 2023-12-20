@@ -443,8 +443,8 @@ fn render_value(val: &Value, indent: usize, f: &mut Formatter<'_>) -> std::fmt::
 
 #[cfg(test)]
 mod test {
-    use crate::model::check_result::Command;
-    use crate::model::config::{ConfigProvider, Host, Service};
+    use super::{ConfigProvider, Host, Service};
+    use crate::icinga2::model::check_result::Command;
     use serde_json::{json, Map};
 
     #[test]

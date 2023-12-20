@@ -6,10 +6,10 @@ use thiserror::Error;
 /// The `config::UpdateObject` message is used to create new object in the master. It contains at
 /// least the following values:
 ///
-///     * The name of the object is composed like <hostname>[!<service_name>] for checkable objects.
-///     * The type of the object is either "Host" or "Service" for the two checkable Objects.
-///     * The version is a number and should always be 0.0 to show that is is the first version, as
-///       well as guarantee that it won't overwrite any existing objects.
+/// - The name of the object is composed like <hostname>[!<service_name>] for checkable objects.
+/// - The type of the object is either "Host" or "Service" for the two checkable Objects.
+/// - The version is a number and should always be 0.0 to show that is is the first version, as
+///   well as guarantee that it won't overwrite any existing objects.
 ///
 /// Further more has the object a package field which should always be 'director' if the icinga
 /// director is used to avoid conflicts on the next deploy. However if that is the case, the objects

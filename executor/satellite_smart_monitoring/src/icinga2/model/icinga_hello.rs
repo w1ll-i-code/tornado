@@ -5,9 +5,8 @@ use std::fmt::{Display, Formatter};
 
 /// Icinga sends with it's `icinga::Hello` message currently two parameters:
 ///
-///     * The version of the client, encoded as e.g. 21300 for v2.13.0.
-///
-///     * The permission of the client, a bitfield of size 64, encoded as a double
+/// - version: The version of the client, encoded as e.g. 21300 for v2.13.0.
+/// - capabilities: The permission of the client, a bitfield of size 64, encoded as a double
 ///
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct IcingaHelloParams {
@@ -18,8 +17,7 @@ pub struct IcingaHelloParams {
 /// Right now only one permission is implemented, however this bitfield is future-prove if ever
 /// there is more added. Furthermore it allows for easier deserialization. The current permissions
 /// are:
-///
-///     * execute_arbitrary_command = 1u
+///     execute_arbitrary_command = 1u
 ///
 #[bitfield(u64)]
 #[derive(PartialEq)]
