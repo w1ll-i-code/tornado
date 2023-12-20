@@ -10,6 +10,8 @@ use crate::icinga2::object_store::IcingaObjectStore;
 use certificates::{load_ca, load_cert, load_key, save_ca, save_cert, save_fpr};
 use flume::{Receiver, Sender, TryRecvError};
 use log::{debug, error, info, trace, warn};
+use serde::Deserialize;
+use std::convert::Infallible;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::sync::Arc;
@@ -30,7 +32,7 @@ pub type SenderInput = Sender<SetStateRequest>;
 
 const ICINGA_VERSION: u32 = 21300;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Deserialize)]
 pub struct SetStateRequest {
     host: Host,
     service: Option<Service>,
@@ -407,7 +409,10 @@ impl<Writer: AsyncWrite + Unpin + Send> SenderIo<Writer> {
     }
 }
 
-pub async fn worker(config: IcingaSatelliteConfig, channel: Receiver<SetStateRequest>) -> ! {
+pub async fn worker(
+    config: IcingaSatelliteConfig,
+    channel: Receiver<SetStateRequest>,
+) -> Infallible {
     let mut dropped_messages: Option<Vec<SetStateRequest>> = None;
     let config = Arc::new(config);
 

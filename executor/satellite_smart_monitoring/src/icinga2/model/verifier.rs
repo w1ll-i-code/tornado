@@ -17,9 +17,7 @@ pub trait Validator: Sized {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_str(ValidatorVisitor::<Self> {
-            phantom_data: PhantomData::default(),
-        })
+        deserializer.deserialize_str(ValidatorVisitor::<Self> { phantom_data: PhantomData })
     }
 }
 

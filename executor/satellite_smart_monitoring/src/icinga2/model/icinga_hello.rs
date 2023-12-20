@@ -99,7 +99,7 @@ impl Display for IcingaHelloParams {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::{IcingaMethods, JsonRpc};
+    use crate::icinga2::model::{IcingaMethods, JsonRpc};
 
     #[test]
     pub fn should_deserialize() {
