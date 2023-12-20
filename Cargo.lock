@@ -3249,6 +3249,7 @@ dependencies = [
 name = "satellite_smart_monitoring"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "bitfield-struct",
  "env_logger",
  "flume",
@@ -3261,6 +3262,9 @@ dependencies = [
  "tokio",
  "tokio-netstring-trait",
  "tokio-rustls 0.24.1",
+ "tornado_common",
+ "tornado_common_api",
+ "tornado_executor_common",
  "webpki 0.22.4",
 ]
 
