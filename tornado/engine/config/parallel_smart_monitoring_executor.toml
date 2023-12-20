@@ -1,0 +1,2 @@
+# Max parallel requests, set to 0 it will become unbound.
+max_parallel_requests = 10
