@@ -25,7 +25,7 @@ pub trait StatelessExecutor: Display + Send + Sync {
 #[async_trait::async_trait]
 impl<T: StatelessExecutor> StatelessExecutor for Arc<T> {
     async fn execute(&self, action: Arc<Action>) -> Result<(), ExecutorError> {
-        self.execute(action).await
+        self.as_ref().execute(action).await
     }
 }
 

@@ -26,7 +26,7 @@ where
     T: Command<Message, Output>,
 {
     async fn execute(&self, message: Message) -> Output {
-        self.execute(message).await
+        self.as_ref().execute(message).await
     }
 }
 
