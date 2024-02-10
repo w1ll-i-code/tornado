@@ -33,7 +33,7 @@ impl<'de, T: Validator> Visitor<'de> for ValidatorVisitor<T> {
         formatter.write_str(T::EXPECTED_VALUE)
     }
 
-    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: Error,
     {
