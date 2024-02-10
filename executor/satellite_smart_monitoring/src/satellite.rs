@@ -9,19 +9,20 @@ use crate::icinga2::model::{IcingaMethods, IcingaTimestamp, JsonRpc, LogPosition
 use crate::icinga2::object_store::IcingaObjectStore;
 use certificates::{load_ca, load_cert, load_key, save_ca, save_cert, save_fpr};
 use flume::{Receiver, Sender, TryRecvError};
+use lazy_static::lazy_static;
 use log::{debug, error, info, trace, warn};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, UNIX_EPOCH};
 use tokio::fs::{read, read_to_string, write};
 use tokio::io;
 use tokio::io::{split, AsyncRead, AsyncWrite, AsyncWriteExt, ErrorKind, ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
 use tokio::select;
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, Mutex};
 use tokio::time::sleep;
 use tokio_netstring_trait::{AsyncNetstringRead, AsyncNetstringWrite};
 use tokio_rustls::client::TlsStream;
@@ -32,11 +33,21 @@ pub type SenderInput = Sender<SetStateRequest>;
 
 const ICINGA_VERSION: u32 = 21300;
 
-#[derive(PartialEq, Deserialize)]
+#[derive(Serialize)]
+pub struct ExecutionTiming {
+    start: u64,
+    end: u64,
+}
+
+lazy_static! {
+    pub static ref MEASUREMENTS: Mutex<Vec<ExecutionTiming>> = Mutex::new(vec![]);
+}
+
+#[derive(PartialEq, Serialize, Deserialize)]
 pub struct SetStateRequest {
-    host: Host,
-    service: Option<Service>,
-    check_result: CheckResultParams,
+    pub host: Host,
+    pub service: Option<Service>,
+    pub check_result: CheckResultParams,
 }
 
 impl Debug for SetStateRequest {
@@ -268,7 +279,7 @@ impl<T: AsyncRead + Send> ReceiverIo<T> {
                 match std::str::from_utf8(message) {
                     Ok(faulty_json) => {
                         error!(
-                            "Received unknown message from icinga that I could not read: {}",
+                            "Received unknown message from icinga that I could not read: {}\nError: {err}",
                             faulty_json
                         );
                     }
@@ -279,7 +290,7 @@ impl<T: AsyncRead + Send> ReceiverIo<T> {
         }
     }
 
-    pub fn pop_from_work_queue(
+    pub async fn pop_from_work_queue(
         &mut self,
         stored: &mut Option<IcingaPendingCall>,
         log_position: LogPosition,
@@ -289,6 +300,12 @@ impl<T: AsyncRead + Send> ReceiverIo<T> {
                 *stored = Some((ts, method));
                 return Ok(());
             }
+            let start = Duration::from_micros(ts.as_micros());
+            let end = start - UNIX_EPOCH.elapsed().unwrap();
+            MEASUREMENTS.lock().await.push(ExecutionTiming {
+                start: start.as_micros() as u64,
+                end: end.as_micros() as u64,
+            })
         }
 
         // drop from queue if needed
@@ -299,6 +316,12 @@ impl<T: AsyncRead + Send> ReceiverIo<T> {
                         *stored = Some((ts, method));
                         return Ok(());
                     }
+                    let start = Duration::from_micros(ts.as_micros());
+                    let end = start - UNIX_EPOCH.elapsed().unwrap();
+                    MEASUREMENTS.lock().await.push(ExecutionTiming {
+                        start: start.as_micros() as u64,
+                        end: end.as_micros() as u64,
+                    })
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(TryRecvError::Disconnected) => return Err(()),
@@ -626,7 +649,7 @@ async fn receiver<Reader: AsyncRead + Send>(
 
         match json_rpc.method {
             IcingaMethods::SetLogPosition(log_position) => {
-                let result = receiver_io.pop_from_work_queue(&mut stored, log_position);
+                let result = receiver_io.pop_from_work_queue(&mut stored, log_position).await;
                 if result.is_err() {
                     break;
                 }

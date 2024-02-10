@@ -30,7 +30,7 @@ if (existing) {{
     fn getter_function(&self, ctx: &'a Self::Context) -> String;
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct Host {
     pub name: String,
     pub import: Option<String>,
@@ -40,7 +40,7 @@ pub struct Host {
     pub address: Option<String>,
     pub address6: Option<String>,
 
-    pub max_check_attempts: Option<String>,
+    pub max_check_attempts: Option<u32>,
     pub check_interval: Option<String>,
     pub retry_interval: Option<String>,
     pub enable_active_checks: Option<bool>,
@@ -126,7 +126,7 @@ impl Host {
 
     fn render_max_check_attempts(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(max_check_attempts) = &self.max_check_attempts {
-            render_kv_property("max_check_attempts", max_check_attempts, f)?;
+            render_kv_property("max_check_attempts", &max_check_attempts.to_string(), f)?;
         }
         Ok(())
     }

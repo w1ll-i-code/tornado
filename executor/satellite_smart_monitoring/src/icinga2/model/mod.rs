@@ -1,5 +1,5 @@
 mod certification;
-mod check_result;
+pub mod check_result;
 pub mod config;
 mod icinga_hello;
 mod log_position;

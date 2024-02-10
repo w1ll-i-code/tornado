@@ -26,6 +26,10 @@ impl IcingaTimestamp {
     pub fn null() -> IcingaTimestamp {
         IcingaTimestamp { sec: 0, us: 0 }
     }
+
+    pub fn as_micros(&self) -> u64 {
+        self.sec * MICRO_SECONDS_PER_SECOND as u64 + self.us as u64
+    }
 }
 
 impl From<f64> for IcingaTimestamp {
@@ -56,11 +60,7 @@ impl Display for IcingaTimestamp {
 
 impl Default for IcingaTimestamp {
     fn default() -> Self {
-        UNIX_EPOCH
-            .elapsed()
-            .expect("Collect your nobel price for time travel")
-            .as_secs_f64()
-            .into()
+        UNIX_EPOCH.elapsed().expect("Collect your nobel price for time travel").as_secs_f64().into()
     }
 }
 

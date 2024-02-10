@@ -10,7 +10,7 @@ use tornado_executor_common::{ExecutorError, StatelessExecutor};
 
 pub mod config;
 mod error;
-mod icinga2;
+pub(crate) mod icinga2;
 pub mod satellite;
 
 #[allow(dead_code)] // Allow handle to be unused in this struct.
