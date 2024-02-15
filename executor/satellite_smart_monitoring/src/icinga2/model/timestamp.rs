@@ -82,9 +82,7 @@ impl<'de> Deserialize<'de> for IcingaTimestamp {
     where
         D: Deserializer<'de>,
     {
-        deserializer
-            .deserialize_f64(TimeStampVisitor)
-            .or_else(|| deserializer.deserialize_u64(TimeStampVisitor))
+        deserializer.deserialize_any(TimeStampVisitor)
     }
 }
 

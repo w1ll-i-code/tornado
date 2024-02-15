@@ -522,7 +522,12 @@ async fn sender<Writer: AsyncWrite + Unpin + Send>(mut sender_io: SenderIo<Write
                     error!("{}", err);
                     return;
                 };
-                try_create_service(&mut sender_io, &mut internal_state, &request).await;
+                if let Err(err) =
+                    try_create_service(&mut sender_io, &mut internal_state, &request).await
+                {
+                    error!("{}", err);
+                    return;
+                };
                 if let Some(err) = try_send_check_result(&mut sender_io, request).await {
                     error!("{}", err);
                     break;
@@ -598,7 +603,7 @@ async fn try_create_service<Writer: AsyncWrite + Unpin + Send>(
     };
 
     let mut builder = match UpdateObjectParams::create_service(&request.host.name, &service.name) {
-        Ok(mut builder) => builder,
+        Ok(builder) => builder,
         Err(err) => return Err(err.to_string()),
     };
 
