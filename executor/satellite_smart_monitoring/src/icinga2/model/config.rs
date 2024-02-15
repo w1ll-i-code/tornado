@@ -234,20 +234,21 @@ impl Service {
     }
 
     fn render_check_command(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(check_command) = &self.check_command {
-            const CONFIG_KEY: &str = "check_command";
+        const CONFIG_KEY: &str = "check_command";
 
+        if let Some(check_command) = &self.check_command {
             match check_command {
-                Command::String(string) => render_kv_property(CONFIG_KEY, string, f)?,
-                Command::Vec(array) => render_string_array(CONFIG_KEY, array, f)?,
-            };
+                Command::String(string) => render_kv_property(CONFIG_KEY, string, f),
+                Command::Vec(array) => render_string_array(CONFIG_KEY, array, f),
+            }
+        } else {
+            render_kv_property(CONFIG_KEY, "dummy", f)
         }
-        Ok(())
     }
 
     fn render_host(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(host) = &self.host {
-            render_kv_property("host", host, f)?;
+            render_kv_property("host_name", host, f)?;
         }
         Ok(())
     }
@@ -268,9 +269,10 @@ impl Service {
 
     fn render_enable_active_checks(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(enable_active_checks) = &self.enable_active_checks {
-            render_kv_raw("enable_active_checks", enable_active_checks, f)?;
+            render_kv_raw("enable_active_checks", enable_active_checks, f)
+        } else {
+            render_kv_raw("enable_active_checks", &false, f)
         }
-        Ok(())
     }
 
     fn render_enable_passive_checks(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

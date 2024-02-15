@@ -1,9 +1,5 @@
-use crate::icinga2::model::config::{Host, Service};
-use crate::icinga2::model::{
-    CheckResultParams, Command, HostCheckResult, HostState, ServiceCheckResult, ServiceState,
-    SharedCheckResult,
-};
-use crate::satellite::SetStateRequest;
+use clap::Parser;
+use log::trace;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -13,15 +9,29 @@ use tornado_executor_common::StatelessExecutor;
 use tornado_executor_satellite_smart_monitoring::config::{
     EndPointConfig, SatelliteSmartMonitoringConfig,
 };
+use tornado_executor_satellite_smart_monitoring::icinga2::model::config::{Host, Service};
+use tornado_executor_satellite_smart_monitoring::icinga2::model::{
+    CheckResultParams, Command, HostCheckResult, HostState, ServiceCheckResult, ServiceState,
+    SharedCheckResult,
+};
+use tornado_executor_satellite_smart_monitoring::satellite::SetStateRequest;
 use tornado_executor_satellite_smart_monitoring::SatelliteSmartMonitoringExecutor;
 
-mod config;
-mod error;
-mod icinga2;
-mod satellite;
+#[derive(Parser, Debug)]
+struct Params {
+    #[arg(short, long)]
+    host: usize,
+    #[arg(short, long)]
+    service: usize,
+    #[arg(short, long)]
+    replays: usize,
+}
+
 #[tokio::main]
 async fn main() {
     env_logger::init();
+
+    let params = Params::parse();
 
     let config = SatelliteSmartMonitoringConfig {
         endpoint: EndPointConfig {
@@ -32,39 +42,59 @@ async fn main() {
         },
         cert_root_path: PathBuf::from("test_data"),
         retry_time: Duration::from_secs(10),
-        max_parallel_send: 10,
-        intern_buffer_size: 10_000_000,
+        max_parallel_send: 100,
+        intern_buffer_size: 100_000,
     };
 
     let executor = SatelliteSmartMonitoringExecutor::new(config);
 
-    let hosts = 10;
-    let services_per_host = 10;
+    let hosts = params.host;
+    let services_per_host = params.service;
 
     let requests = generate_requests(hosts, services_per_host);
-    *satellite::MEASUREMENTS.lock().await = Vec::with_capacity(hosts * (services_per_host + 1));
+    *tornado_executor_satellite_smart_monitoring::satellite::MEASUREMENTS.lock().await =
+        Vec::with_capacity(hosts * (services_per_host + 1));
 
-    for request in requests {
-        let action = Arc::new(Action::new_with_payload_and_created_ms(
-            "satellite-monitoring-executor",
-            to_payload(request),
-            UNIX_EPOCH.elapsed().unwrap().as_millis() as u64,
-        ));
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
-        executor.execute(action).await.unwrap();
-    }
+    for replay in 0..params.replays {
+        for request in requests {
+            let action = Arc::new(Action::new_with_payload_and_created_ms(
+                "satellite-monitoring-executor",
+                to_payload(request),
+                UNIX_EPOCH.elapsed().unwrap().as_millis() as u64,
+            ));
 
-    loop {
-        let measurements = satellite::MEASUREMENTS.lock().await;
-        if measurements.len() == measurements.capacity() {
-            let data = serde_json::to_string(&*measurements).unwrap();
-            tokio::fs::write(format!("{hosts}-{services_per_host}-results.json"), data.as_bytes())
-                .await
-                .unwrap_or_else(|_| println!("{data}"));
-            return;
+            executor.execute(action).await.unwrap();
         }
 
-        tokio::time::sleep(Duration::from_secs(10)).await;
+        trace!("Sent all requests");
+
+        'wait: loop {
+            {
+                let measurements =
+                    tornado_executor_satellite_smart_monitoring::satellite::MEASUREMENTS
+                        .lock()
+                        .await;
+                if measurements.len() == measurements.capacity() {
+                    let data = serde_json::to_string(&*measurements).unwrap();
+                    tokio::fs::write(
+                        format!("timings-host{hosts:06}-service{services_per_host:03}-replay{replay:03}.json"),
+                        data.as_bytes(),
+                    )
+                    .await
+                    .unwrap_or_else(|_| println!("{data}"));
+                    break 'wait;
+                }
+
+                trace!(
+                    "missing measurements: {} != {}",
+                    measurements.len(),
+                    measurements.capacity()
+                );
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
     }
 }
 
@@ -83,10 +113,9 @@ fn generate_requests(hosts: usize, services_per_host: usize) -> Vec<SetStateRequ
             name: format!("host-number-{host_number:06}"),
             check_command: Some(Command::String("dummy".to_owned())),
             zone: Some("master".to_string()),
-            groups: Some(vec![format!("host-group-{}", host_number % 64)]),
             address: Some(format!("127.0.0.{}", host_number % 255)),
             max_check_attempts: Some((host_number % 5 + 4) as u32),
-            check_interval: Some(format!("{}m", 30 - (host_number % 5) * 5)),
+            enable_active_checks: Some(false),
             ..Default::default()
         };
 
@@ -100,12 +129,13 @@ fn generate_requests(hosts: usize, services_per_host: usize) -> Vec<SetStateRequ
             let service = Service {
                 name: format!("service-number-{service_number:03}"),
                 host: Some(host.name.clone()),
+                enable_active_checks: Some(false),
                 ..Default::default()
             };
 
             requests.push(SetStateRequest {
                 host: host.clone(),
-                service: None,
+                service: Some(service),
                 check_result: generate_cr_service(host_number, service_number),
             })
         }
@@ -117,11 +147,11 @@ fn generate_requests(hosts: usize, services_per_host: usize) -> Vec<SetStateRequ
 fn generate_cr(host_number: usize, service_number: usize) -> CheckResultParams {
     let mut shared_cr = SharedCheckResult::default();
     shared_cr.active = Some(false);
-    shared_cr.check_source = Some(format!("host-number-{host_number}"));
+    shared_cr.check_source = Some(format!("host-number-{host_number:06}"));
     shared_cr.output =
         Some(format!("host-number-{:08x}-number-host", host_number * service_number));
     CheckResultParams::Host {
-        host: format!("host-number-{host_number}"),
+        host: format!("host-number-{host_number:06}"),
         cr: HostCheckResult { state: HostState::UP, cr: Box::new(shared_cr) },
     }
 }
@@ -129,12 +159,12 @@ fn generate_cr(host_number: usize, service_number: usize) -> CheckResultParams {
 fn generate_cr_service(host_number: usize, service_number: usize) -> CheckResultParams {
     let mut shared_cr = SharedCheckResult::default();
     shared_cr.active = Some(false);
-    shared_cr.check_source = Some(format!("host-number-{host_number}"));
+    shared_cr.check_source = Some(format!("host-number-{host_number:06}"));
     shared_cr.output =
         Some(format!("host-number-{:08x}-number-host", host_number * service_number));
     CheckResultParams::Service {
-        host: format!("host-number-{host_number}"),
-        service: format!("service-number-{service_number}"),
+        host: format!("host-number-{host_number:06}"),
+        service: format!("service-number-{service_number:03}"),
         cr: ServiceCheckResult { state: ServiceState::OK, cr: Box::new(shared_cr) },
     }
 }

@@ -50,7 +50,7 @@ pub struct JsonRpc {
 
 impl From<IcingaMethods> for JsonRpc {
     fn from(method: IcingaMethods) -> Self {
-        JsonRpc { version: (), method, ts: None }
+        JsonRpc { version: (), method, ts: Some(IcingaTimestamp::now()) }
     }
 }
 

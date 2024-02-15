@@ -3,11 +3,14 @@ pub mod config;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use futures_lite::future::FutureExt;
+use lazy_static::lazy_static;
+use serde::Serialize;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
+use std::time::UNIX_EPOCH;
 use tokio::sync::Mutex;
 use tokio::task::{JoinError, JoinHandle};
 use tornado_common::command::pool::CommandPool;
@@ -19,6 +22,16 @@ use tornado_executor_common::{ExecutorError, StatefulExecutor};
 use tornado_executor_smart_monitoring_check_result::{
     SimpleCreateAndProcess, SmartMonitoringExecutor,
 };
+
+lazy_static! {
+    pub static ref MEASUREMENTS: Mutex<Vec<ExecutionTiming>> = Mutex::new(vec![]);
+}
+
+#[derive(Serialize)]
+pub struct ExecutionTiming {
+    start: u64,
+    end: u64,
+}
 
 #[derive(Eq, PartialEq)]
 struct IcingaObjectId {
@@ -127,11 +140,19 @@ impl ParallelSmartMonitoringExecutor {
         let executor = self.smart_monitoring_executor.clone();
 
         async {
+            let start = UNIX_EPOCH.elapsed().unwrap();
             let command = RetryCommand::new(
                 retry_strategy,
                 CommandPool::new(1, StatelessExecutorCommand::new(action_meter, executor)),
             );
-            command.execute(action).await
+            let res = command.execute(action).await;
+
+            MEASUREMENTS.lock().await.push(ExecutionTiming {
+                start: start.as_micros() as u64,
+                end: UNIX_EPOCH.elapsed().unwrap().as_micros() as u64,
+            });
+
+            res
         }
     }
 }

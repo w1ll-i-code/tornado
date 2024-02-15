@@ -25,6 +25,7 @@ log = "0.4"
 thiserror = "1"
 async-trait = "0.1"
 lazy_static = { version = "1.4.0", features = [] }
+clap = { version = "4.5.0", features = ["derive"] }
 
 [dev-dependencies]
 tokio-test = "0.4"

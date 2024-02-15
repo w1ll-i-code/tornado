@@ -20,21 +20,3 @@ impl LogPosition {
         self.log_position
     }
 }
-
-impl From<IcingaTimestamp> for LogPosition {
-    fn from(ts: IcingaTimestamp) -> Self {
-        LogPosition { log_position: ts }
-    }
-}
-
-impl From<f64> for LogPosition {
-    fn from(ts: f64) -> Self {
-        LogPosition { log_position: ts.into() }
-    }
-}
-
-impl From<LogPosition> for IcingaTimestamp {
-    fn from(log_position: LogPosition) -> Self {
-        log_position.log_position
-    }
-}

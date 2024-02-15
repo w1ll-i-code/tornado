@@ -14,9 +14,9 @@ pub const ICINGA_FIELD_FOR_SPECIFYING_OBJECT_NAME: &str = "object_name";
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct SimpleCreateAndProcess {
-    check_result: Payload,
-    host: Payload,
-    service: Option<Payload>,
+    pub check_result: Payload,
+    pub host: Payload,
+    pub service: Option<Payload>,
 }
 
 impl SimpleCreateAndProcess {

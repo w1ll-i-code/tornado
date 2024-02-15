@@ -309,6 +309,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "anstream"
+version = "0.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e2e1ebcb11de5c03c67de28a7df593d32191b44939c482e97702baaaa6ab6a5"
+dependencies = [
+ "anstyle",
+ "anstyle-parse",
+ "anstyle-query",
+ "anstyle-wincon",
+ "colorchoice",
+ "utf8parse",
+]
+
+[[package]]
+name = "anstyle"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8901269c6307e8d93993578286ac0edf7f195079ffff5ebdeea6a59ffb7e36bc"
+
+[[package]]
+name = "anstyle-parse"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c75ac65da39e5fe5ab759307499ddad880d724eed2f6ce5b5e8a26f4f387928c"
+dependencies = [
+ "utf8parse",
+]
+
+[[package]]
+name = "anstyle-query"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e28923312444cdd728e4738b3f9c9cac739500909bb3d3c94b43551b16517648"
+dependencies = [
+ "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "anstyle-wincon"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cd54b81ec8d6180e24654d0b371ad22fc3dd083b6ff8ba325b72e00c87660a7"
+dependencies = [
+ "anstyle",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -866,11 +914,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "feff3878564edb93745d58cf63e17b63f24142506e7a20c87a5521ed7bfb1d63"
 dependencies = [
  "bitflags 1.3.2",
- "clap_derive",
+ "clap_derive 3.0.0-beta.5",
  "indexmap",
  "lazy_static",
  "os_str_bytes",
  "textwrap 0.14.2",
+]
+
+[[package]]
+name = "clap"
+version = "4.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80c21025abd42669a92efc996ef13cfb2c5c627858421ea58d5c3b331a6c134f"
+dependencies = [
+ "clap_builder",
+ "clap_derive 4.5.0",
+]
+
+[[package]]
+name = "clap_builder"
+version = "4.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "458bf1f341769dfcf849846f65dffdf9146daa56bcd2a47cb4e1de9915567c99"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "clap_lex",
+ "strsim",
 ]
 
 [[package]]
@@ -879,12 +949,30 @@ version = "3.0.0-beta.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b15c6b4f786ffb6192ffe65a36855bc1fc2444bcd0945ae16748dcd6ed7d0d3"
 dependencies = [
- "heck",
+ "heck 0.3.3",
  "proc-macro-error",
  "proc-macro2 1.0.78",
  "quote 1.0.35",
  "syn 1.0.81",
 ]
+
+[[package]]
+name = "clap_derive"
+version = "4.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "307bc0538d5f0f83b8248db3087aa92fe504e4691294d0c96c0eabc33f47ba47"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2 1.0.78",
+ "quote 1.0.35",
+ "syn 2.0.48",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
 name = "codespan-reporting"
@@ -895,6 +983,12 @@ dependencies = [
  "termcolor",
  "unicode-width",
 ]
+
+[[package]]
+name = "colorchoice"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "concurrent-queue"
@@ -1090,16 +1184,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "ctor"
-version = "0.1.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccc0a48a9b826acdf4028595adc9db92caea352f7af011a3034acd172a52a0aa"
-dependencies = [
- "quote 1.0.35",
- "syn 1.0.81",
 ]
 
 [[package]]
@@ -1645,6 +1729,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2103,11 +2193,10 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.14"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
+checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 dependencies = [
- "cfg-if 1.0.0",
  "value-bag",
 ]
 
@@ -2816,7 +2905,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "355f634b43cdd80724ee7848f95770e7e70eefa6dcf14fea676216573b8fd603"
 dependencies = [
  "bytes",
- "heck",
+ "heck 0.3.3",
  "itertools",
  "log",
  "multimap",
@@ -3721,6 +3810,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "strsim"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
+
+[[package]]
 name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4583,13 +4678,21 @@ name = "tornado_executor_parallel_smart_monitoring"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "clap 4.5.0",
+ "env_logger",
  "futures",
  "futures-lite",
+ "lazy_static",
+ "log",
+ "rand 0.8.4",
  "serde",
+ "serde_json",
  "tokio",
  "tornado_common",
  "tornado_common_api",
  "tornado_executor_common",
+ "tornado_executor_director",
+ "tornado_executor_icinga2",
  "tornado_executor_smart_monitoring_check_result",
 ]
 
@@ -4599,6 +4702,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "bitfield-struct",
+ "clap 4.5.0",
  "env_logger",
  "flume",
  "lazy_static",
@@ -5049,6 +5153,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "utf8parse"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
+
+[[package]]
 name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5068,13 +5178,9 @@ dependencies = [
 
 [[package]]
 name = "value-bag"
-version = "1.0.0-alpha.8"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79923f7731dc61ebfba3633098bf3ac533bbd35ccd8c57e7088d9a5eebe0263f"
-dependencies = [
- "ctor",
- "version_check",
-]
+checksum = "126e423afe2dd9ac52142e7e9d5ce4135d7e13776c529d27fd6bc49f19e3280b"
 
 [[package]]
 name = "vcpkg"

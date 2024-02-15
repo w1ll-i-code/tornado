@@ -10,9 +10,18 @@ tornado_executor_smart_monitoring_check_result = { path = "../smart_monitoring_c
 tornado_common.workspace = true
 tornado_common_api.workspace = true
 tornado_executor_common.workspace = true
+serde_json = "1"
+log = "0.4.20"
+rand = "0.8"
+
+env_logger = "0.10"
+tornado_executor_director = { path = "../director", version = "0.0.1" }
+tornado_executor_icinga2 = { path = "../icinga2", version = "0.0.1" }
 
 tokio = "1"
 async-trait = "0.1"
 futures = "0.3"
 futures-lite = "1.13"
 serde = { version = "1", features = ["derive"] }
+lazy_static = "1.4.0"
+clap = { version = "4.5.0", features = ["derive"] }

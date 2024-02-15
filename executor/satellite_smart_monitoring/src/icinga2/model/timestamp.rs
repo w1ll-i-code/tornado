@@ -30,6 +30,9 @@ impl IcingaTimestamp {
     pub fn as_micros(&self) -> u64 {
         self.sec * MICRO_SECONDS_PER_SECOND as u64 + self.us as u64
     }
+    pub fn as_secs(&self) -> u64 {
+        self.sec
+    }
 }
 
 impl From<f64> for IcingaTimestamp {

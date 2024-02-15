@@ -54,9 +54,10 @@ impl Debug for SetStateRequest {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.service {
             None => f.write_fmt(format_args!("SetStateRequest {{ {} }}", self.host,)),
-            Some(service) => {
-                f.write_fmt(format_args!("SetStateRequest {{ {}!{} }}", self.host, service.name))
-            }
+            Some(service) => f.write_fmt(format_args!(
+                "SetStateRequest {{ {}!{} }}",
+                self.host.name, service.name
+            )),
         }
     }
 }
@@ -295,29 +296,39 @@ impl<T: AsyncRead + Send> ReceiverIo<T> {
         stored: &mut Option<IcingaPendingCall>,
         log_position: LogPosition,
     ) -> Result<(), ()> {
+        trace!("Popping from work queue!");
+        debug!("{:?} >= {:?}", stored, log_position.ts());
         if let Some((ts, method)) = stored.take() {
             if ts >= log_position.ts() {
                 *stored = Some((ts, method));
                 return Ok(());
             }
+
             let start = Duration::from_micros(ts.as_micros());
-            let end = start - UNIX_EPOCH.elapsed().unwrap();
+            let end = UNIX_EPOCH.elapsed().unwrap();
+            debug!("New measurement: {}-{}", start.as_micros(), end.as_micros());
             MEASUREMENTS.lock().await.push(ExecutionTiming {
                 start: start.as_micros() as u64,
                 end: end.as_micros() as u64,
-            })
+            });
+            debug!("Added measurement, {} measurements", MEASUREMENTS.lock().await.len())
         }
 
         // drop from queue if needed
         loop {
-            match self.work_queue.try_recv() {
+            trace!("Popping from work queue!");
+            let recv = self.work_queue.try_recv();
+            debug!("{:?}", recv);
+            match recv {
                 Ok((ts, method)) => {
+                    debug!("{:?} >= {:?}", ts, log_position.ts());
                     if ts >= log_position.ts() {
                         *stored = Some((ts, method));
                         return Ok(());
                     }
                     let start = Duration::from_micros(ts.as_micros());
-                    let end = start - UNIX_EPOCH.elapsed().unwrap();
+                    let end = UNIX_EPOCH.elapsed().unwrap();
+                    debug!("New measurement: {}-{}", start.as_micros(), end.as_micros());
                     MEASUREMENTS.lock().await.push(ExecutionTiming {
                         start: start.as_micros() as u64,
                         end: end.as_micros() as u64,
@@ -505,80 +516,14 @@ async fn sender<Writer: AsyncWrite + Unpin + Send>(mut sender_io: SenderIo<Write
         let mut timeout = Instant::now();
         match sender_io.get_next_action(&mut timeout).await {
             Ok(SenderIoAction::Send(request)) => {
-                if !internal_state.exists(&request.host.name) {
-                    let params = match UpdateObjectParams::create_host(&request.host.name) {
-                        Ok(mut builder) => {
-                            builder.config = Some(request.host.configuration());
-                            builder.zone = request.host.zone.clone();
-                            builder.modified_attributes = request.host.vars.clone();
-                            builder.build()
-                        }
-                        Err(err) => {
-                            error!("{}", err);
-                            continue;
-                        }
-                    };
-
-                    if let Err(err) =
-                        sender_io.send_request(IcingaMethods::UpdateObject(params)).await
-                    {
-                        error!(
-                            "Could not create host \"{}\"in icinga2. Error: {}",
-                            request.host.name, err
-                        );
-                    }
-                }
-
-                if let Some(service) = &request.service {
-                    if !internal_state.exists_service(&request.host.name, &service.name) {
-                        let params = match UpdateObjectParams::create_service(
-                            &request.host.name,
-                            &service.name,
-                        ) {
-                            Ok(mut builder) => {
-                                builder.config = Some(request.host.configuration());
-                                builder.modified_attributes = request.host.vars.clone();
-                                builder.build()
-                            }
-                            Err(err) => {
-                                error!("{}", err);
-                                continue;
-                            }
-                        };
-
-                        if let Err(err) =
-                            sender_io.send_request(IcingaMethods::UpdateObject(params)).await
-                        {
-                            error!(
-                                "Could not create host \"{}!{}\"in icinga2. Error: {}",
-                                request.host.name, service.name, err
-                            );
-                        }
-                    }
-                }
-
-                let result = sender_io
-                    .send_request(IcingaMethods::CheckResult(request.check_result.clone()))
-                    .await;
-
-                let ts = match &result {
-                    Ok(Some(ts)) => *ts,
-                    _ => IcingaTimestamp::default(),
+                if let Err(err) =
+                    try_create_host(&mut sender_io, &mut internal_state, &request).await
+                {
+                    error!("{}", err);
+                    return;
                 };
-
-                let error_message = result
-                    .map_err(|err| {
-                        format!(
-                            "Could not set check_result for object \"{}\" in icinga2. Error: {}",
-                            request.check_result.name(),
-                            err
-                        )
-                    })
-                    .err();
-
-                sender_io.queue_pending_call((ts, request)).await;
-
-                if let Some(err) = error_message {
+                try_create_service(&mut sender_io, &mut internal_state, &request).await;
+                if let Some(err) = try_send_check_result(&mut sender_io, request).await {
                     error!("{}", err);
                     break;
                 }
@@ -599,7 +544,6 @@ async fn sender<Writer: AsyncWrite + Unpin + Send>(mut sender_io: SenderIo<Write
             Ok(SenderIoAction::UpdateState(UpdateObject::Update { name })) => {
                 trace!("Inserting object {} into known objects", name);
                 internal_state.insert(name);
-                println!("{:?}", internal_state)
             }
             Ok(SenderIoAction::UpdateState(UpdateObject::Delete { name })) => {
                 internal_state.delete(&name);
@@ -610,6 +554,98 @@ async fn sender<Writer: AsyncWrite + Unpin + Send>(mut sender_io: SenderIo<Write
             }
         }
     }
+}
+
+async fn try_send_check_result<Writer: AsyncWrite + Unpin + Send>(
+    sender_io: &mut SenderIo<Writer>,
+    request: SetStateRequest,
+) -> Option<String> {
+    let result =
+        sender_io.send_request(IcingaMethods::CheckResult(request.check_result.clone())).await;
+
+    let ts = match &result {
+        Ok(Some(ts)) => *ts,
+        _ => IcingaTimestamp::default(),
+    };
+
+    let error_message = result
+        .map_err(|err| {
+            format!(
+                "Could not set check_result for object \"{}\" in icinga2. Error: {}",
+                request.check_result.name(),
+                err
+            )
+        })
+        .err();
+
+    sender_io.queue_pending_call((ts, request)).await;
+    error_message
+}
+
+async fn try_create_service<Writer: AsyncWrite + Unpin + Send>(
+    sender_io: &mut SenderIo<Writer>,
+    internal_state: &mut IcingaObjectStore,
+    request: &SetStateRequest,
+) -> Result<(), String> {
+    let Some(service) = &request.service else {
+        trace!("Request doesn't contain service {}", request.host.name);
+        return Ok(());
+    };
+
+    if internal_state.exists_service(&request.host.name, &service.name) {
+        trace!("Internal state already contains Host {}", service.name);
+        return Ok(());
+    };
+
+    let mut builder = match UpdateObjectParams::create_service(&request.host.name, &service.name) {
+        Ok(mut builder) => builder,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    builder.config = Some(service.configuration());
+    builder.modified_attributes = request.host.vars.clone();
+    let params = builder.build();
+
+    if let Err(err) = sender_io.send_request(IcingaMethods::UpdateObject(params)).await {
+        return Err(format!(
+            "Could not create host \"{}!{}\"in icinga2. Error: {}",
+            request.host.name, service.name, err
+        ));
+    }
+
+    internal_state.insert(service.name.clone());
+    Ok(())
+}
+
+async fn try_create_host<Writer: AsyncWrite + Unpin + Send>(
+    sender_io: &mut SenderIo<Writer>,
+    internal_state: &mut IcingaObjectStore,
+    request: &SetStateRequest,
+) -> Result<(), String> {
+    if internal_state.exists(&request.host.name) {
+        trace!("Internal state already contains host {}", request.host.name);
+        return Ok(());
+    }
+
+    let mut builder = match UpdateObjectParams::create_host(&request.host.name) {
+        Ok(builder) => builder,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    builder.config = Some(request.host.configuration());
+    builder.zone = request.host.zone.clone();
+    builder.modified_attributes = request.host.vars.clone();
+    let params = builder.build();
+
+    if let Err(err) = sender_io.send_request(IcingaMethods::UpdateObject(params)).await {
+        return Err(format!(
+            "Could not create host \"{}\" in icinga2. Error: {}",
+            request.host.name, err
+        ));
+    }
+
+    internal_state.insert(request.host.name.clone());
+    Ok(())
 }
 
 async fn receiver<Reader: AsyncRead + Send>(

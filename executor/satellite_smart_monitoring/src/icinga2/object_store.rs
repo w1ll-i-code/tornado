@@ -11,9 +11,7 @@ pub struct IcingaObjectStore {
 
 impl IcingaObjectStore {
     pub fn new() -> Self {
-        Self {
-            store: HashMap::new(),
-        }
+        Self { store: HashMap::new() }
     }
 
     pub fn exists(&self, name: &str) -> bool {
@@ -27,20 +25,14 @@ impl IcingaObjectStore {
     }
 
     pub fn exists_service(&self, host: &str, service: &str) -> bool {
-        self.store
-            .get(host)
-            .map(|service_set| service_set.contains(service))
-            .is_some()
+        self.store.get(host).map(|service_set| service_set.contains(service)).unwrap_or(false)
     }
 
     pub fn insert(&mut self, name: String) {
         let (host, service) = split_once_on(&name, '!');
 
         let service_set = match self.store.get_mut(host) {
-            None => self
-                .store
-                .entry(host.to_owned().into())
-                .or_insert(hashset! {}),
+            None => self.store.entry(host.to_owned().into()).or_insert(hashset! {}),
             Some(service_set) => service_set,
         };
 
