@@ -52,12 +52,13 @@ async fn main() {
     let services_per_host = params.service;
 
     let requests = generate_requests(hosts, services_per_host);
-    *tornado_executor_satellite_smart_monitoring::satellite::MEASUREMENTS.lock().await =
-        Vec::with_capacity(hosts * (services_per_host + 1));
+
 
     tokio::time::sleep(Duration::from_secs(5)).await;
 
     for replay in 0..params.replays {
+        *tornado_executor_satellite_smart_monitoring::satellite::MEASUREMENTS.lock().await =
+            Vec::with_capacity(hosts * (services_per_host + 1));
         for request in requests.clone() {
             let action = Arc::new(Action::new_with_payload_and_created_ms(
                 "satellite-monitoring-executor",
