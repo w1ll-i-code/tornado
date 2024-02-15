@@ -43,7 +43,7 @@ lazy_static! {
     pub static ref MEASUREMENTS: Mutex<Vec<ExecutionTiming>> = Mutex::new(vec![]);
 }
 
-#[derive(PartialEq, Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub struct SetStateRequest {
     pub host: Host,
     pub service: Option<Service>,

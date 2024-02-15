@@ -179,7 +179,7 @@ impl ConfigProvider<'_> for Host {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct Service {
     pub name: String,
     pub import: Option<String>,

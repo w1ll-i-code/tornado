@@ -12,7 +12,7 @@ pub const ICINGA_FIELD_FOR_SPECIFYING_TYPE: &str = "type";
 pub const ICINGA_FIELD_FOR_SPECIFYING_OBJECT_TYPE: &str = "object_type";
 pub const ICINGA_FIELD_FOR_SPECIFYING_OBJECT_NAME: &str = "object_name";
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Clone)]
 pub struct SimpleCreateAndProcess {
     pub check_result: Payload,
     pub host: Payload,

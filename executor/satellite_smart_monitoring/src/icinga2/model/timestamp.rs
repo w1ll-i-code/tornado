@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::time::UNIX_EPOCH;
 
+use serde::de::Error;
 use serde::{de, de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
 const MICRO_SECONDS_PER_SECOND: f64 = 1_000_000f64;
@@ -81,7 +82,9 @@ impl<'de> Deserialize<'de> for IcingaTimestamp {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_f64(TimeStampVisitor)
+        deserializer
+            .deserialize_f64(TimeStampVisitor)
+            .or_else(|| deserializer.deserialize_u64(TimeStampVisitor))
     }
 }
 
@@ -99,5 +102,12 @@ impl<'de> Visitor<'de> for TimeStampVisitor {
         E: de::Error,
     {
         Ok(value.into())
+    }
+
+    fn visit_u64<E>(self, sec: u64) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        Ok(IcingaTimestamp { sec, us: 0 })
     }
 }

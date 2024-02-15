@@ -19,7 +19,7 @@ use tornado_executor_satellite_smart_monitoring::SatelliteSmartMonitoringExecuto
 
 #[derive(Parser, Debug)]
 struct Params {
-    #[arg(short, long)]
+    #[arg(long)]
     host: usize,
     #[arg(short, long)]
     service: usize,
@@ -58,7 +58,7 @@ async fn main() {
     tokio::time::sleep(Duration::from_secs(5)).await;
 
     for replay in 0..params.replays {
-        for request in requests {
+        for request in requests.clone() {
             let action = Arc::new(Action::new_with_payload_and_created_ms(
                 "satellite-monitoring-executor",
                 to_payload(request),
