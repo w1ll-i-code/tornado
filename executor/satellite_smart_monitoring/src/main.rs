@@ -42,7 +42,7 @@ async fn main() {
         },
         cert_root_path: PathBuf::from("test_data"),
         retry_time: Duration::from_secs(10),
-        max_parallel_send: 100,
+        max_parallel_send: 5000,
         intern_buffer_size: 100_000,
     };
 
@@ -52,7 +52,6 @@ async fn main() {
     let services_per_host = params.service;
 
     let requests = generate_requests(hosts, services_per_host);
-
 
     tokio::time::sleep(Duration::from_secs(5)).await;
 
