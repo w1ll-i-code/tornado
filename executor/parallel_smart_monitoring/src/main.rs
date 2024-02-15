@@ -1,9 +1,12 @@
 use clap::Parser;
 use log::trace;
+use rand::distributions::uniform::{UniformInt, UniformSampler};
+use rand::distributions::Distribution;
 use rand::distributions::WeightedIndex;
 use rand::{thread_rng, Rng};
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
@@ -19,10 +22,12 @@ use tornado_executor_smart_monitoring_check_result::{
 
 #[derive(Parser, Debug)]
 struct Params {
-    #[arg(short, long)]
+    #[arg(long)]
     host: usize,
     #[arg(short, long)]
     service: usize,
+    #[arg(short, long)]
+    replays: usize,
     #[arg(short, long)]
     weights: Option<Vec<u32>>,
 }
@@ -46,7 +51,7 @@ async fn main() {
     let params = Params::parse();
 
     let icinga_config = Icinga2ClientConfig {
-        server_api_url: "icinga-master".to_string(),
+        server_api_url: "https://icinga-master".to_string(),
         username: "tornado".to_string(),
         password: "tornado".to_string(),
         disable_ssl_verification: true,
@@ -54,7 +59,7 @@ async fn main() {
     };
 
     let director_config = DirectorClientConfig {
-        server_api_url: "icinga-master".to_string(),
+        server_api_url: "https://icinga-master".to_string(),
         username: "tornado".to_string(),
         password: "tornado".to_string(),
         disable_ssl_verification: true,
@@ -83,36 +88,42 @@ async fn main() {
 
     tokio::time::sleep(Duration::from_secs(5)).await;
 
-    for request in requests {
-        let action = Arc::new(Action::new_with_payload_and_created_ms(
-            "parallel-monitoring-executor",
-            to_payload(request),
-            UNIX_EPOCH.elapsed().unwrap().as_millis() as u64,
-        ));
+    for replay in 0..params.replays {
+        for request in requests.clone() {
+            let action = Arc::new(Action::new_with_payload_and_created_ms(
+                "satellite-monitoring-executor",
+                to_payload(request),
+                UNIX_EPOCH.elapsed().unwrap().as_millis() as u64,
+            ));
 
-        executor.execute(action).await.unwrap();
-    }
-
-    trace!("Sent all requests");
-
-    loop {
-        {
-            let measurements =
-                tornado_executor_parallel_smart_monitoring::MEASUREMENTS.lock().await;
-            if measurements.len() == measurements.capacity() {
-                let data = serde_json::to_string(&*measurements).unwrap();
-                tokio::fs::write(
-                    format!("{hosts}-{services_per_host}-results.json"),
-                    data.as_bytes(),
-                )
-                .await
-                .unwrap_or_else(|_| println!("{data}"));
-                return;
-            }
-
-            trace!("missing measurements: {} != {}", measurements.len(), measurements.capacity());
+            executor.execute(action).await.unwrap();
         }
-        tokio::time::sleep(Duration::from_secs(10)).await;
+
+        trace!("Sent all requests");
+
+        'wait: loop {
+            {
+                let measurements =
+                    tornado_executor_parallel_smart_monitoring::MEASUREMENTS.lock().await;
+                if measurements.len() == measurements.capacity() {
+                    let data = serde_json::to_string(&*measurements).unwrap();
+                    tokio::fs::write(
+                        format!("timings-host{hosts:06}-service{services_per_host:03}-replay{replay:03}.json"),
+                        data.as_bytes(),
+                    )
+                        .await
+                        .unwrap_or_else(|_| println!("{data}"));
+                    break 'wait;
+                }
+
+                trace!(
+                    "missing measurements: {} != {}",
+                    measurements.len(),
+                    measurements.capacity()
+                );
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
     }
 }
 
@@ -144,7 +155,7 @@ fn generate_requests(hosts: usize, services_per_host: usize) -> Vec<SimpleCreate
 
         for service_number in 0..services_per_host {
             let service = json!({
-               "object_name": "myservice",
+               "object_name": format!("myservice-{service_number:03}"),
                "check_command": "ping"
             });
 
@@ -167,11 +178,12 @@ fn generate_requests_random(
 ) -> Vec<SimpleCreateAndProcess> {
     let mut requests = Vec::with_capacity(hosts * (services_per_host + 1));
 
-    let mut dist = WeightedIndex::new(&weights).unwrap();
-    let rng = thread_rng();
+    let wei_dist = WeightedIndex::new(weights).unwrap();
+    let uni_dist = UniformInt::<u32>::new(0, 11);
+    let mut rng = thread_rng();
 
-    for _ in 0..hosts {
-        let host_number = choices[dist.sample(&rng)];
+    for _ in 0..hosts * services_per_host {
+        let host_number = choices[wei_dist.sample(&mut rng)];
         let host = json!({
            "object_name": format!("myhost-{host_number:06}"),
            "address": "127.0.0.1",
@@ -187,12 +199,11 @@ fn generate_requests_random(
             service: None,
         });
 
-        for service_number in 0..services_per_host {
+        if let Some(service) = NonZeroU32::new(uni_dist.sample(&mut rng)) {
             let service = json!({
-               "object_name": "myservice",
+               "object_name": format!("myservice-{service:03}"),
                "check_command": "ping"
             });
-
             requests.push(SimpleCreateAndProcess {
                 check_result: to_payload(generate_cr()),
                 host: to_payload(host.clone()),
