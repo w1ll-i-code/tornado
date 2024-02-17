@@ -51,17 +51,17 @@ async fn main() {
     let params = Params::parse();
 
     let icinga_config = Icinga2ClientConfig {
-        server_api_url: "https://icinga-master".to_string(),
+        server_api_url: "https://icinga-master/icinga-master".to_string(),
         username: "tornado".to_string(),
-        password: "tornado".to_string(),
+        password: "Nw2pepHAHbsy32KB2huJDrCf57Fpb7tV".to_string(),
         disable_ssl_verification: true,
         timeout_secs: None,
     };
 
     let director_config = DirectorClientConfig {
-        server_api_url: "https://icinga-master".to_string(),
-        username: "tornado".to_string(),
-        password: "tornado".to_string(),
+        server_api_url: "https://icinga-master/neteye/director/".to_string(),
+        username: "neteye-tornado".to_string(),
+        password: "9VzbpmHZXhcgv02RCSBhxe47jDApzhpC".to_string(),
         disable_ssl_verification: true,
         timeout_secs: None,
     };
