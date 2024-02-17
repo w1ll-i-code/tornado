@@ -33,10 +33,15 @@ pub struct ExecutionTiming {
     end: u64,
 }
 
-#[derive(Eq, PartialEq)]
 struct IcingaObjectId {
     host: Option<String>,
     service: Option<String>,
+}
+
+impl PartialEq<Self> for IcingaObjectId {
+    fn eq(&self, other: &Self) -> bool {
+        self.host.eq(&other.host)
+    }
 }
 
 struct RunningFuture {

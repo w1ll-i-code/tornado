@@ -40,8 +40,8 @@ impl Params {
             Some(weights) => {
                 let n = 1000 - weights * 10;
                 let weights = once(weights * 10).chain(once(1).cycle()).take(n).collect();
-                let values = (0..n).collect();
-                Some((weights, values))
+                let choices = (0..n).collect();
+                Some((weights, choices))
             }
         }
     }
@@ -85,9 +85,6 @@ async fn main() {
     } else {
         generate_requests(hosts, services_per_host)
     };
-
-    *tornado_executor_parallel_smart_monitoring::MEASUREMENTS.lock().await =
-        Vec::with_capacity(hosts * (services_per_host + 1));
 
     tokio::time::sleep(Duration::from_secs(5)).await;
 
