@@ -6,7 +6,8 @@ use rand::distributions::WeightedIndex;
 use rand::{thread_rng, Rng};
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::num::NonZeroU32;
+use std::iter::once;
+use std::num::{NonZeroU32, NonZeroUsize};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
@@ -29,16 +30,18 @@ struct Params {
     #[arg(short, long)]
     replays: usize,
     #[arg(short, long)]
-    weights: Option<Vec<u32>>,
+    equals: Option<usize>,
 }
 
 impl Params {
-    fn get_random(&self) -> Option<(&[u32], Vec<usize>)> {
-        match self.weights.as_deref() {
+    fn get_random(&self) -> Option<(Vec<usize>, Vec<usize>)> {
+        match self.equals {
             None => None,
             Some(weights) => {
-                let choices = (0..weights.len()).collect();
-                Some((weights, choices))
+                let n = 1000 - weights * 10;
+                let weights = once(weights * 10).chain(once(1).cycle()).take(n).collect();
+                let values = (0..n).collect();
+                Some((weights, values))
             }
         }
     }
@@ -78,7 +81,7 @@ async fn main() {
     let services_per_host = params.service;
 
     let requests = if let Some((weights, choices)) = params.get_random() {
-        generate_requests_random(hosts, services_per_host, weights, &choices)
+        generate_requests_random(hosts, services_per_host, &weights, &choices)
     } else {
         generate_requests(hosts, services_per_host)
     };
@@ -173,13 +176,13 @@ fn generate_requests(hosts: usize, services_per_host: usize) -> Vec<SimpleCreate
 fn generate_requests_random(
     hosts: usize,
     services_per_host: usize,
-    weights: &[u32],
+    weights: &[usize],
     choices: &[usize],
 ) -> Vec<SimpleCreateAndProcess> {
     let mut requests = Vec::with_capacity(hosts * (services_per_host + 1));
 
     let wei_dist = WeightedIndex::new(weights).unwrap();
-    let uni_dist = UniformInt::<u32>::new(0, 11);
+    let uni_dist = UniformInt::<usize>::new(0, 11);
     let mut rng = thread_rng();
 
     for _ in 0..hosts * services_per_host {
@@ -199,7 +202,7 @@ fn generate_requests_random(
             service: None,
         });
 
-        if let Some(service) = NonZeroU32::new(uni_dist.sample(&mut rng)) {
+        if let Some(service) = NonZeroUsize::new(uni_dist.sample(&mut rng)) {
             let service = json!({
                "object_name": format!("myservice-{service:03}"),
                "check_command": "ping"
